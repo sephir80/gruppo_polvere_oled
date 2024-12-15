@@ -6,8 +6,10 @@
 #define SCREEN_WIDTH 128
 #define SCREEN_HEIGHT 64
 #define OLED_RESET    -1
-#define NELEMENTI_MAX 10
+#define NELEMENTI_MAX 4
 #define DELTA_TIME  5000
+#define GRAMMI_PER_VOLT 3000
+#define RISOLUZIONE_ADC 0.0001875
 Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, OLED_RESET);
 Adafruit_ADS1115 ads;
 
@@ -34,19 +36,22 @@ void setup()
     display.display();
     delay(2000);
     adc0 = ads.readADC_SingleEnded(0);
-    volt = tensione(adc0);
-    pesoinGrammiOld = convertiInPeso(volt, 3000);
+    volt = tensione(adc0,RISOLUZIONE_ADC);
+    pesoinGrammiOld = convertiInPeso(volt, GRAMMI_PER_VOLT);
+  //  pesoinGrammiOld = 0;
     indexElemento = 0;
+    grammiAlMinuto = 0;
 }
 
 void loop() {
     int16_t deltaPeso;
 
     adc0 = ads.readADC_SingleEnded(0);
-    volt = tensione(adc0);
-    pesoinGrammiNew = convertiInPeso(volt, 3000);
+    volt = tensione(adc0,RISOLUZIONE_ADC);
+    pesoinGrammiNew = convertiInPeso(volt, GRAMMI_PER_VOLT);
+  //  pesoinGrammiNew += 5;
+    grammiAlMinuto = calcolaGrammiAlMinuto(pesoinGrammiNew,pesoinGrammiOld,grammiAlMinuto);
 
-    grammiAlMinuto = calcolaGrammiAlMinuto(pesoinGrammiNew,pesoinGrammiOld);
     Serial.print("Analog input pin 0 : ");
     Serial.print(adc0);
     Serial.print(" volt : ");
@@ -55,12 +60,13 @@ void loop() {
     Display3elementi(volt, grammiAlMinuto, pesoinGrammiNew);
 
     delay(DELTA_TIME);
+    pesoinGrammiOld = pesoinGrammiNew;
 }
 
-float tensione(int16_t campione)
+float tensione(int16_t campione,float adcResolution)
 {
     float v;
-    v = abs(campione * 0.0001875);
+    v = abs(campione * adcResolution);
     return v;
 }
 
@@ -71,23 +77,23 @@ float convertiInPeso(float volt, int GrammixVolt)
     return g;
 }
 
-int calcolaGrammiAlMinuto(int16_t pesoNew, int16_t pesoOld)
+int calcolaGrammiAlMinuto(int16_t pesoNew, int16_t pesoOld, int16_t grammiOld)
 {
-    int16_t gmin = 0;
     int16_t delta = 0;
     delta = pesoNew - pesoOld;
     listaDeltaPeso[indexElemento]=delta;
     indexElemento++;
     if (indexElemento==NELEMENTI_MAX)
     {
+        grammiOld = 0;
         for (auto d:listaDeltaPeso)
         {
-            gmin += d;
+            grammiOld += d;
         }
-        gmin *= (60000/(NELEMENTI_MAX*DELTA_TIME));
+        grammiOld *= (60000/(NELEMENTI_MAX*DELTA_TIME));
         indexElemento = 0;
     }
-    return gmin;
+    return grammiOld;
 }
 
 void Display3elementi(float v, int16_t grmin, int16_t grammi)
