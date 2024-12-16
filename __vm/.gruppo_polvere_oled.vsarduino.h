@@ -6,7 +6,7 @@
 			All non-arduino files created by visual micro and all visual studio project or solution files can be freely deleted and are not required to compile a sketch (do not delete your own code!).
 			Note: debugger breakpoints are stored in '.sln' or '.asln' files, knowledge of last uploaded breakpoints is stored in the upload.vmps.xml file. Both files are required to continue a previous debug session without needing to compile and upload again
 	
-	Hardware: Arduino Uno (uno), Platform=avr, Package=arduino
+	Hardware: Arduino MKR WiFi 1010(mkrwifi1010), Platform=samd, Package=arduino
 */
 
 #if defined(_VMICRO_INTELLISENSE)
@@ -15,6 +15,8 @@
 #define _VSARDUINO_H_
 #include <arduino.h>
 #include <pins_arduino.h> 
+#include <variant.h> 
+#include <variant.cpp> 
 #include "..\gruppo_polvere_oled.ino"
 #endif
 #endif

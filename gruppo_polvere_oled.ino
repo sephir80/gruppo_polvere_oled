@@ -1,14 +1,15 @@
 #include <Wire.h>
 #include <Adafruit_ADS1X15.h>
 #include <Adafruit_SSD1306.h>
+#include <time.h>
 
-
+#define LED_OVERFLOW 2
 #define SCREEN_WIDTH 128
 #define SCREEN_HEIGHT 64
 #define OLED_RESET    -1
 #define NELEMENTI_MAX 4
 #define DELTA_TIME  5000
-#define GRAMMI_PER_VOLT 3000
+#define GRAMMI_PER_VOLT 1000
 #define RISOLUZIONE_ADC 0.0001875
 Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, OLED_RESET);
 Adafruit_ADS1115 ads;
@@ -24,6 +25,7 @@ int16_t listaDeltaPeso[NELEMENTI_MAX];
 
 void setup()
 {
+    pinMode(LED_OVERFLOW, OUTPUT);
     Serial.begin(9600);
     ads.setGain(GAIN_TWOTHIRDS);
     ads.begin();
@@ -48,19 +50,37 @@ void loop() {
 
     adc0 = ads.readADC_SingleEnded(0);
     volt = tensione(adc0,RISOLUZIONE_ADC);
+    if (volt>5.0 )
+    {
+        digitalWrite(LED_OVERFLOW, HIGH);
+    }
+    else
+    {
+        digitalWrite(LED_OVERFLOW, LOW);
+    }
     pesoinGrammiNew = convertiInPeso(volt, GRAMMI_PER_VOLT);
   //  pesoinGrammiNew += 5;
     grammiAlMinuto = calcolaGrammiAlMinuto(pesoinGrammiNew,pesoinGrammiOld,grammiAlMinuto);
 
-    Serial.print("Analog input pin 0 : ");
-    Serial.print(adc0);
-    Serial.print(" volt : ");
-    Serial.println(volt);
-
+    StampaSeriale();
     Display3elementi(volt, grammiAlMinuto, pesoinGrammiNew);
 
     delay(DELTA_TIME);
     pesoinGrammiOld = pesoinGrammiNew;
+}
+
+void StampaSeriale()
+{
+    Serial.print(millis());
+    Serial.print(";");
+    Serial.print(pesoinGrammiNew);
+    Serial.print(";");
+    Serial.println(grammiAlMinuto);
+
+/*    Serial.print("Analog input pin 0 : ");
+    Serial.print(adc0);
+    Serial.print(" volt : ");
+    */
 }
 
 float tensione(int16_t campione,float adcResolution)
@@ -73,7 +93,7 @@ float tensione(int16_t campione,float adcResolution)
 float convertiInPeso(float volt, int GrammixVolt)
 {
     int16_t g = 0;
-    g = volt * GrammixVolt;
+    g = (volt * GrammixVolt)-20;
     return g;
 }
 
@@ -111,7 +131,7 @@ void Display3elementi(float v, int16_t grmin, int16_t grammi)
     display.setCursor(68, 0);
     display.print("GR/M");
     display.setCursor(88, 16);
-    display.print(grmin);
+    display.print(abs( grmin));
 
     display.setCursor(25, 35);
     display.print("Peso");
